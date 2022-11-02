@@ -1,4 +1,4 @@
-﻿Maker,Base_number,Weight(Ton),Height(mm),Outer_max,Outer_min,Inner
+﻿Maker,Base_number,Weight(Ton),Height(mm),Outer_max(mm),Outer_min(mm),Inner(mm)
 EBNER,1,35,2800,1700,900,508
 EBNER,2,35,2800,1700,900,508
 EBNER,3,35,2800,1700,900,508
