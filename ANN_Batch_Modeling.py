@@ -3,16 +3,37 @@ import numpy as np
 import ortools
 from ortools.linear_solver import pywraplp
 
-df = pd.read_csv("./data/data_df.csv")
-data_df = df.copy()
-data_df.drop("Unnamed: 0", axis=1, inplace=True)
-data_df = data_df.astype({"WDT_LEN" : "str", "WGT_WGT" : "str", "IND_CD" : "str", "OUD_LEN" : "str", "STL_CD" : "str"})
 
+# data_df = pd.read_csv("./data/data_df.csv")
+# data_df.drop("Unnamed: 0", axis=1, inplace=True)
+# coil_df = data_df.copy()
+#data_df = data_df.astype({"WDT_LEN" : "str", "WGT_WGT" : "str", "IND_CD" : "str", "OUD_LEN" : "str", "STL_CD" : "str"})
+
+# coil_number = first_coil_group["COIL_NO"].tolist()
+# ann_number = first_coil_group["PNSPRC_CD"].tolist()
+# cycle = first_coil_group["cycle"].tolist()
+# coil_heights = first_coil_group["WDT_LEN"].tolist()
+# coil_weights = first_coil_group["WGT_WGT"].tolist()
+# coil_inner = first_coil_group["IND_CD"].tolist()
+# coil_outer = first_coil_group["OUD_LEN"].tolist()
+# coil_emergency = first_coil_group["EMG_CD"].tolist()
+# Coil Data
+
+
+
+data = {}
+
+# Coil
+coil_information = pd.read_csv("./data/coil_information.csv")
+coil_information_df = coil_information.copy()
+coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
+
+# print("coil_information_df dtypes is ", coil_information_df.dtypes)
 
 # 첫번째 코일 그룹
-separated_df = data_df.loc[(data_df['PNSPRC_CD'] == 'AN11') & (data_df['cycle'] == '620')]
-middle_df = separated_df.loc[separated_df['IND_CD'] == '508']
-first_coil_group = middle_df
+# cycle의 type : object
+separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
+first_coil_group = separated_df.loc[separated_df['IND_CD'] == 508]
 
 coil_number = first_coil_group["COIL_NO"].tolist()
 ann_number = first_coil_group["PNSPRC_CD"].tolist()
@@ -23,9 +44,11 @@ coil_inner = first_coil_group["IND_CD"].tolist()
 coil_outer = first_coil_group["OUD_LEN"].tolist()
 coil_emergency = first_coil_group["EMG_CD"].tolist()
 
+
+# Base Data
 base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
 first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 6)]
-first_base_group
+
 
 # 첫번째 베이스 그룹
 base_weight_capa = first_base_group["Weight(Ton)"].tolist()
@@ -34,27 +57,9 @@ base_min_od_capa = first_base_group["Outer_max(mm)"].tolist()
 base_max_od_capa = first_base_group["Outer_min(mm)"].tolist()
 base_id_capa = first_base_group["Inner(mm)"].tolist()
 
-kind_of_ann = data_df["PNSPRC_CD"].unique().tolist()
-kind_of_cycle = data_df["cycle"].unique().tolist()
+kind_of_ann = coil_information_df["PNSPRC_CD"].unique().tolist()
+kind_of_cycle = coil_information_df["cycle"].unique().tolist()
 solver = solver = pywraplp.Solver.CreateSolver('SCIP')
-
-# data_df = pd.read_csv("./data/data_df.csv")
-# data_df.drop("Unnamed: 0", axis=1, inplace=True)
-# coil_df = data_df.copy()
-#data_df = data_df.astype({"WDT_LEN" : "str", "WGT_WGT" : "str", "IND_CD" : "str", "OUD_LEN" : "str", "STL_CD" : "str"})
-
-
-
-# Coil
-data = {}
-# coil_number = first_coil_group["COIL_NO"].tolist()
-# ann_number = first_coil_group["PNSPRC_CD"].tolist()
-# cycle = first_coil_group["cycle"].tolist()
-# coil_heights = first_coil_group["WDT_LEN"].tolist()
-# coil_weights = first_coil_group["WGT_WGT"].tolist()
-# coil_inner = first_coil_group["IND_CD"].tolist()
-# coil_outer = first_coil_group["OUD_LEN"].tolist()
-# coil_emergency = first_coil_group["EMG_CD"].tolist()
 
 
 assert len(coil_number) == len(ann_number) == len(cycle) == len(coil_heights) == len(coil_weights) == len(coil_inner) == len(coil_outer) == len(coil_emergency) 
@@ -72,8 +77,6 @@ data['num_coils'] = len(coil_number)
 # Base
 base_info = pd.read_csv("./data/base_capacity_information.csv")
 base_df = base_info.copy()
-
-
 
 # base_maker = base_df['Maker'].tolist()
 # base_number = base_df['Base_number'].tolist()
@@ -100,13 +103,13 @@ data['bases'] = list(range(number_base))
 assert len(data['base_weights']) == number_base
 assert len(data['base_weights']) == len(data['base_heights']) == len(data['base_outer_max']) == len(data['base_outer_min']) == len(data['base_inner'])
 
-print("coil_number: ",*data['coil_number'][:5])
-print('coil_heights:',*data['coil_heights'][:5])
-print('coil_weights:',*data['coil_weights'][:5])
-print('coil_inner:', *data['coil_inner'][:5])
-print('coil_outer:', *data['coil_outer'][:5])
-print("Number of coils:", len(data['coil_number']))
-print("Number of Bases:" , number_base)
+# print("coil_number: ",data['coil_number'])
+# print('coil_heights:',data['coil_heights'][:5])
+# print('coil_weights:',data['coil_weights'][:5])
+# print('coil_inner:', data['coil_inner'][:5])
+# print('coil_outer:', data['coil_outer'][:5])
+# print("Number of coils:", len(data['coil_number']))
+# print("Number of Bases:" , number_base)
 # print('Knapsack Capacities: 50 Pounds, 50 cubic inches, 5 Levels of Radiation')
 
 
@@ -132,11 +135,13 @@ for j in data['bases']:
 
 # TODO : 외경조건은 sum이 아니므로 그 문법에 맞게 코드 수정
 for j in data['bases']:
-    solver.Add((x[(i,j)]*data['coil_outer'][i] for i in data['coils']) <= data['base_outer_max'][j])
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] <= data['base_outer_max'][j])
 
 
 for j in data['bases']:
-    solver.Add((x[(i,j)]*data['coil_outer'][i] for i in data['coils']) >= data['base_outer_min'][j])
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] >= data['base_outer_min'][j])
 
 
 
@@ -153,15 +158,15 @@ solv = solver.Solve()
 if solv == pywraplp.Solver.OPTIMAL:
     print('Total Batched Heights:', objective.Value())
     total_weight = 0
-    for j in data['bags']:
+    for j in data['bases']:
         base_weights = 0
         base_heights = 0
         base_outer_max= 0
         base_outer_min = 0
         print('\n','Base', j+1 , '\n')
-        for i in data['items']:
+        for i in data['coils']:
             if x[i,j].solution_value()>0:
-                print('Item:', i , 
+                print('coils:', i , 
                       'coil_heights',data['coil_heights'][i],
                       'coil_weights', data['coil_weights'][i],
                     #   'coil_inner', data['coil_inner'][i],
