@@ -2,24 +2,7 @@ import pandas as pd
 import numpy as np
 import ortools
 from ortools.linear_solver import pywraplp
-
-
-# data_df = pd.read_csv("./data/data_df.csv")
-# data_df.drop("Unnamed: 0", axis=1, inplace=True)
-# coil_df = data_df.copy()
-#data_df = data_df.astype({"WDT_LEN" : "str", "WGT_WGT" : "str", "IND_CD" : "str", "OUD_LEN" : "str", "STL_CD" : "str"})
-
-# coil_number = first_coil_group["COIL_NO"].tolist()
-# ann_number = first_coil_group["PNSPRC_CD"].tolist()
-# cycle = first_coil_group["cycle"].tolist()
-# coil_heights = first_coil_group["WDT_LEN"].tolist()
-# coil_weights = first_coil_group["WGT_WGT"].tolist()
-# coil_inner = first_coil_group["IND_CD"].tolist()
-# coil_outer = first_coil_group["OUD_LEN"].tolist()
-# coil_emergency = first_coil_group["EMG_CD"].tolist()
-# Coil Data
-
-
+solver = solver = pywraplp.Solver.CreateSolver('SCIP')
 
 data = {}
 
@@ -27,13 +10,16 @@ data = {}
 coil_information = pd.read_csv("./data/coil_information.csv")
 coil_information_df = coil_information.copy()
 coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
+print("------------coil_information_df-------------")
+print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
 
 # print("coil_information_df dtypes is ", coil_information_df.dtypes)
 
 # 첫번째 코일 그룹
 # cycle의 type : object
-separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
-first_coil_group = separated_df.loc[separated_df['IND_CD'] == 508]
+separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '700')]
+first_coil_group = separated_df.loc[separated_df['IND_CD'] == 610]
+# print("first_coil_group is ", first_coil_group)
 
 coil_number = first_coil_group["COIL_NO"].tolist()
 ann_number = first_coil_group["PNSPRC_CD"].tolist()
@@ -44,23 +30,8 @@ coil_inner = first_coil_group["IND_CD"].tolist()
 coil_outer = first_coil_group["OUD_LEN"].tolist()
 coil_emergency = first_coil_group["EMG_CD"].tolist()
 
-
-# Base Data
-base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
-first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 6)]
-
-
-# 첫번째 베이스 그룹
-base_weight_capa = first_base_group["Weight(Ton)"].tolist()
-base_height_capa = first_base_group["Height(mm)"].tolist()
-base_min_od_capa = first_base_group["Outer_max(mm)"].tolist()
-base_max_od_capa = first_base_group["Outer_min(mm)"].tolist()
-base_id_capa = first_base_group["Inner(mm)"].tolist()
-
-kind_of_ann = coil_information_df["PNSPRC_CD"].unique().tolist()
-kind_of_cycle = coil_information_df["cycle"].unique().tolist()
-solver = solver = pywraplp.Solver.CreateSolver('SCIP')
-
+# kind_of_ann = coil_information_df["PNSPRC_CD"].unique().tolist()
+# kind_of_cycle = coil_information_df["cycle"].unique().tolist()
 
 assert len(coil_number) == len(ann_number) == len(cycle) == len(coil_heights) == len(coil_weights) == len(coil_inner) == len(coil_outer) == len(coil_emergency) 
 data['coil_number'] = coil_number
@@ -74,12 +45,12 @@ data['coil_emergency'] = coil_emergency
 data['coils'] = list(range(len(coil_weights)))
 data['num_coils'] = len(coil_number)
 
-# Base
-base_info = pd.read_csv("./data/base_capacity_information.csv")
-base_df = base_info.copy()
+# Base Data
+base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
+first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 6)]
 
-# base_maker = base_df['Maker'].tolist()
-# base_number = base_df['Base_number'].tolist()
+
+# 첫번째 베이스 그룹
 base_weights = first_base_group['Weight(Ton)'].tolist()
 base_heights = first_base_group['Height(mm)'].tolist()
 base_outer_max = first_base_group['Outer_max(mm)'].tolist()
@@ -87,8 +58,6 @@ base_outer_min = first_base_group['Outer_min(mm)'].tolist()
 base_inner = first_base_group['Inner(mm)'].tolist()
 
 
-# data['base_maker'] = base_maker
-# data['base_number'] = base_number
 data['base_weights'] = base_weights
 data['base_heights'] = base_heights
 data['base_outer_max'] = base_outer_max
