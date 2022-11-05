@@ -10,15 +10,15 @@ data = {}
 coil_information = pd.read_csv("./data/coil_information.csv")
 coil_information_df = coil_information.copy()
 coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
-print("------------coil_information_df-------------")
-print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
+# print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
 
 # print("coil_information_df dtypes is ", coil_information_df.dtypes)
 
 # 첫번째 코일 그룹
 # cycle의 type : object
-separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '700')]
+separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
 first_coil_group = separated_df.loc[separated_df['IND_CD'] == 610]
+
 # print("first_coil_group is ", first_coil_group)
 
 coil_number = first_coil_group["COIL_NO"].tolist()
@@ -44,10 +44,11 @@ data['coil_outer'] = coil_outer
 data['coil_emergency'] = coil_emergency
 data['coils'] = list(range(len(coil_weights)))
 data['num_coils'] = len(coil_number)
+print("Total coil count is ", data['num_coils'])
 
 # Base Data
 base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
-first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 6)]
+first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 3)]
 
 
 # 첫번째 베이스 그룹
@@ -72,15 +73,6 @@ data['bases'] = list(range(number_base))
 assert len(data['base_weights']) == number_base
 assert len(data['base_weights']) == len(data['base_heights']) == len(data['base_outer_max']) == len(data['base_outer_min']) == len(data['base_inner'])
 
-# print("coil_number: ",data['coil_number'])
-# print('coil_heights:',data['coil_heights'][:5])
-# print('coil_weights:',data['coil_weights'][:5])
-# print('coil_inner:', data['coil_inner'][:5])
-# print('coil_outer:', data['coil_outer'][:5])
-# print("Number of coils:", len(data['coil_number']))
-# print("Number of Bases:" , number_base)
-# print('Knapsack Capacities: 50 Pounds, 50 cubic inches, 5 Levels of Radiation')
-
 
 x = {}
 for i in data['coils']:
@@ -103,14 +95,14 @@ for j in data['bases']:
                   for i in data['coils']) <= data['base_heights'][j])
 
 # TODO : 외경조건은 sum이 아니므로 그 문법에 맞게 코드 수정
-for j in data['bases']:
-    for i in data['coils']:
-        solver.Add(x[(i,j)]*data['coil_outer'][i] <= data['base_outer_max'][j])
+# for j in data['bases']:
+#     for i in data['coils']:
+#         solver.Add(x[(i,j)]*data['coil_outer'][i] <= data['base_outer_max'][j])
 
 
-for j in data['bases']:
-    for i in data['coils']:
-        solver.Add(x[(i,j)]*data['coil_outer'][i] >= data['base_outer_min'][j])
+# for j in data['bases']:
+#     for i in data['coils']:
+#         solver.Add(x[(i,j)]*data['coil_outer'][i] >= data['base_outer_min'][j])
 
 
 
@@ -127,6 +119,7 @@ solv = solver.Solve()
 if solv == pywraplp.Solver.OPTIMAL:
     print('Total Batched Heights:', objective.Value())
     total_weight = 0
+    used_coils_count = 0
     for j in data['bases']:
         base_weights = 0
         base_heights = 0
@@ -142,9 +135,11 @@ if solv == pywraplp.Solver.OPTIMAL:
                       'coil_outer', data['coil_outer'][i],
                     #   'coil_emergency',data['coil_emergency'][i]
                      )
-                base_weights += data['base_weights'][i]
-                base_heights += data['base_heights'][i]
-        print('Packed Knapsack Value: ', base_weights)
-        print('Packed Knapsack Weight: ', base_heights)
+                base_weights += data['coil_weights'][i]
+                base_heights += data['coil_heights'][i]
+                used_coils_count = used_coils_count + 1
+        print('used_coils_count : ', used_coils_count)
+        print('Packed base height: ', base_heights)
+        print('Packed base Weight: ',base_weights)
 else:
     print("There is no optimal solution")
