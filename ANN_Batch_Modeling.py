@@ -16,8 +16,10 @@ coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
 
 # 첫번째 코일 그룹
 # cycle의 type : object
-separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
-first_coil_group = separated_df.loc[separated_df['IND_CD'] == 610]
+first_coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '725')]
+
+# separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
+# first_coil_group = separated_df.loc[separated_df['IND_CD'] == 610]
 
 # print("first_coil_group is ", first_coil_group)
 
@@ -48,7 +50,7 @@ print("Total coil count is ", data['num_coils'])
 
 # Base Data
 base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
-first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] <= 3)]
+first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] >= 27) &(base_capacity_information['Base_number'] <=29)]
 
 
 # 첫번째 베이스 그룹
@@ -57,13 +59,14 @@ base_heights = first_base_group['Height(mm)'].tolist()
 base_outer_max = first_base_group['Outer_max(mm)'].tolist()
 base_outer_min = first_base_group['Outer_min(mm)'].tolist()
 base_inner = first_base_group['Inner(mm)'].tolist()
-
+print("First Base Gruop Inner Unique : ", first_base_group['Inner(mm)'].unique())
 
 data['base_weights'] = base_weights
 data['base_heights'] = base_heights
 data['base_outer_max'] = base_outer_max
 data['base_outer_min'] = base_outer_min
 data['base_inner'] = base_inner
+
 
 number_base = len(base_weights)
 
@@ -85,24 +88,32 @@ for i in data['coils']:
     solver.Add(sum(x[i,j] for j in data['bases'])<=1)
 
 
+# Weight Constraint
 for j in data['bases']:
     solver.Add(sum(x[(i,j)]*data['coil_weights'][i] 
                   for i in data['coils']) <= data['base_weights'][j])
 
 
+# Height Constraint
 for j in data['bases']:
     solver.Add(sum(x[(i,j)]*data['coil_heights'][i] 
                   for i in data['coils']) <= data['base_heights'][j])
 
+# Inner Constraint
+for j in data['bases']:
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_inner'][i] == x[(i,j)]*data['base_inner'][j])
+
+# Outer Constraint
 # TODO : 외경조건은 sum이 아니므로 그 문법에 맞게 코드 수정
-# for j in data['bases']:
-#     for i in data['coils']:
-#         solver.Add(x[(i,j)]*data['coil_outer'][i] <= data['base_outer_max'][j])
+for j in data['bases']:
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] <= x[(i,j)]*data['base_outer_max'][j])
 
 
-# for j in data['bases']:
-#     for i in data['coils']:
-#         solver.Add(x[(i,j)]*data['coil_outer'][i] >= data['base_outer_min'][j])
+for j in data['bases']:
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] >= x[(i,j)]*data['base_outer_min'][j])
 
 
 
@@ -128,18 +139,20 @@ if solv == pywraplp.Solver.OPTIMAL:
         print('\n','Base', j+1 , '\n')
         for i in data['coils']:
             if x[i,j].solution_value()>0:
-                print('coils:', i , 
-                      'coil_heights',data['coil_heights'][i],
-                      'coil_weights', data['coil_weights'][i],
-                    #   'coil_inner', data['coil_inner'][i],
-                      'coil_outer', data['coil_outer'][i],
+                print('coils : ', i , 
+                      'coil_heights : ',data['coil_heights'][i],
+                      'coil_weights : ', data['coil_weights'][i],
+                      'coil_outer : ', data['coil_outer'][i],
+                      'coil_inner : ', data['coil_inner'][i]
                     #   'coil_emergency',data['coil_emergency'][i]
                      )
                 base_weights += data['coil_weights'][i]
                 base_heights += data['coil_heights'][i]
                 used_coils_count = used_coils_count + 1
-        print('used_coils_count : ', used_coils_count)
+
         print('Packed base height: ', base_heights)
         print('Packed base Weight: ',base_weights)
+    
+    print('Used_coils_count : ', used_coils_count)
 else:
     print("There is no optimal solution")
