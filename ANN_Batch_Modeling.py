@@ -10,7 +10,7 @@ data = {}
 coil_information = pd.read_csv("./data/coil_information.csv")
 coil_information_df = coil_information.copy()
 coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
-# print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
+print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
 
 # print("coil_information_df dtypes is ", coil_information_df.dtypes)
 
@@ -115,7 +115,7 @@ for j in data['bases']:
     for i in data['coils']:
         solver.Add(x[(i,j)]*data['coil_outer'][i] >= x[(i,j)]*data['base_outer_min'][j])
 
-
+# print(solver.ExportModelAsLpFormat(False).replace('\\', '').replace(',_', ','), sep='\n')
 
 # objective function
 objective = solver.Objective()
