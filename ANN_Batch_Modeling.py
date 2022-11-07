@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import ortools
 from ortools.linear_solver import pywraplp
+
+
+
+
 solver = solver = pywraplp.Solver.CreateSolver('SCIP')
 
 data = {}
