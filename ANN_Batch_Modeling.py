@@ -5,27 +5,23 @@ from ortools.linear_solver import pywraplp
 
 
 
-
+# create model
 solver = solver = pywraplp.Solver.CreateSolver('SCIP')
 
+# set Parameter
+bigM = 10000
 data = {}
 
-# Coil
+# Coil Data
 coil_information = pd.read_csv("./data/coil_information.csv")
 coil_information_df = coil_information.copy()
 coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
 print(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
 
-# print("coil_information_df dtypes is ", coil_information_df.dtypes)
 
-# 첫번째 코일 그룹
+# 첫번째(임시) 코일 그룹
 # cycle의 type : object
 first_coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '725')]
-
-# separated_df = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == 'AN11') & (coil_information_df['cycle'] == '620')]
-# first_coil_group = separated_df.loc[separated_df['IND_CD'] == 610]
-
-# print("first_coil_group is ", first_coil_group)
 
 coil_number = first_coil_group["COIL_NO"].tolist()
 ann_number = first_coil_group["PNSPRC_CD"].tolist()
@@ -52,26 +48,26 @@ data['coils'] = list(range(len(coil_weights)))
 data['num_coils'] = len(coil_number)
 print("Total coil count is ", data['num_coils'])
 
+
 # Base Data
 base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
+
+
+# 첫번째(임시) 베이스 그룹
 first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] >= 27) &(base_capacity_information['Base_number'] <=29)]
 
-
-# 첫번째 베이스 그룹
 base_weights = first_base_group['Weight(Ton)'].tolist()
 base_heights = first_base_group['Height(mm)'].tolist()
 base_outer_max = first_base_group['Outer_max(mm)'].tolist()
 base_outer_min = first_base_group['Outer_min(mm)'].tolist()
 base_inner = first_base_group['Inner(mm)'].tolist()
-print("First Base Gruop Inner Unique : ", first_base_group['Inner(mm)'].unique())
+# print("First Base Gruop Inner Unique : ", first_base_group['Inner(mm)'].unique())
 
 data['base_weights'] = base_weights
 data['base_heights'] = base_heights
 data['base_outer_max'] = base_outer_max
 data['base_outer_min'] = base_outer_min
 data['base_inner'] = base_inner
-
-
 number_base = len(base_weights)
 
 #I wanted to change the values at a later data
@@ -81,13 +77,23 @@ assert len(data['base_weights']) == number_base
 assert len(data['base_weights']) == len(data['base_heights']) == len(data['base_outer_max']) == len(data['base_outer_min']) == len(data['base_inner'])
 
 
+
+
+# set Decision Variables
 x = {}
 for i in data['coils']:
     for j in data['bases']:
         x[(i,j)] = solver.IntVar(0,1,'x_%i_%i' % (i, j))
 
+y = {}
+for j in data['bases']:
+    y[(j)] = solver.IntVar(0,1,'x_%i_%i' % (i, j))
 
-#Constraints
+
+
+
+
+# Constraints
 for i in data['coils']:
     solver.Add(sum(x[i,j] for j in data['bases'])<=1)
 
@@ -103,21 +109,37 @@ for j in data['bases']:
     solver.Add(sum(x[(i,j)]*data['coil_heights'][i] 
                   for i in data['coils']) <= data['base_heights'][j])
 
+# Outer Constraint - 1
+for j in data['bases']:
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] <= x[(i,j)]*data['base_outer_max'][j])
+
+# Outer Constraint - 2
+for j in data['bases']:
+    for i in data['coils']:
+        solver.Add(x[(i,j)]*data['coil_outer'][i] >= x[(i,j)]*data['base_outer_min'][j])                  
+
 # Inner Constraint
 for j in data['bases']:
     for i in data['coils']:
         solver.Add(x[(i,j)]*data['coil_inner'][i] == x[(i,j)]*data['base_inner'][j])
 
-# Outer Constraint
-# TODO : 외경조건은 sum이 아니므로 그 문법에 맞게 코드 수정
-for j in data['bases']:
-    for i in data['coils']:
-        solver.Add(x[(i,j)]*data['coil_outer'][i] <= x[(i,j)]*data['base_outer_max'][j])
+
 
 
 for j in data['bases']:
-    for i in data['coils']:
-        solver.Add(x[(i,j)]*data['coil_outer'][i] >= x[(i,j)]*data['base_outer_min'][j])
+    solver.Add(y[j] <= sum(x[(i,j)] for i in data['coils']))
+
+for j in data['bases']:
+    solver.Add(sum(x[(i,j)] for i in data['coils']) <= bigM*y[j])
+
+for j in data['bases']:
+    solver.Add(data['base_heights'][j]*0.9*y[j] <= sum(x[(i,j)]*data['coil_heights'][i] 
+                  for i in data['coils']))
+
+
+
+
 
 # print(solver.ExportModelAsLpFormat(False).replace('\\', '').replace(',_', ','), sep='\n')
 
@@ -156,6 +178,7 @@ if solv == pywraplp.Solver.OPTIMAL:
 
         print('Packed base height: ', base_heights)
         print('Packed base Weight: ',base_weights)
+        print('Base', j+1, 's height', data['base_heights'][j])
     
     print('Used_coils_count : ', used_coils_count)
 else:
