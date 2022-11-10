@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 import ortools
 from ortools.linear_solver import pywraplp
+from datetime import datetime
+from datetime import timedelta
 
 
 
@@ -49,13 +51,23 @@ data['num_coils'] = len(coil_number)
 print("Total coil count is ", data['num_coils'])
 
 
-# Base Data
-base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
 
+# Base Data
+# base_capacity_information = pd.read_csv("./data/base_capacity_information.csv")
+base_enable_info = pd.read_csv("./data/base_enable_info.csv").drop("Unnamed: 0", axis=1)
+base_enable_info = base_enable_info.astype({'COL_DT' : 'datetime64[ns]', 'COL_FIN_DT' : 'datetime64[ns]'})
+
+# Time : now, future
+now = datetime(2022, 9, 5, hour=8, minute =0, second =0, microsecond=0, tzinfo = None, fold=0)
+hours_8 = timedelta(hours = 8)
+future = now + hours_8
 
 # 첫번째(임시) 베이스 그룹
-first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] >= 27) &(base_capacity_information['Base_number'] <=29)]
+# first_base_group = base_capacity_information.loc[(base_capacity_information['Maker'] == 'EBNER') & (base_capacity_information['Base_number'] >= 27) &(base_capacity_information['Base_number'] <=29)]
+first_base_group = base_enable_info[(base_enable_info['COL_FIN_DT'] <= future) & (base_enable_info['COL_FIN_DT'] >= now)]
 
+
+base_number = first_base_group['BAS_NM'].tolist()
 base_weights = first_base_group['Weight(Ton)'].tolist()
 base_heights = first_base_group['Height(mm)'].tolist()
 base_outer_max = first_base_group['Outer_max(mm)'].tolist()
@@ -63,12 +75,14 @@ base_outer_min = first_base_group['Outer_min(mm)'].tolist()
 base_inner = first_base_group['Inner(mm)'].tolist()
 # print("First Base Gruop Inner Unique : ", first_base_group['Inner(mm)'].unique())
 
+data['base_number'] = base_number
 data['base_weights'] = base_weights
 data['base_heights'] = base_heights
 data['base_outer_max'] = base_outer_max
 data['base_outer_min'] = base_outer_min
 data['base_inner'] = base_inner
-number_base = len(base_weights)
+
+number_base = len(base_number)
 
 #I wanted to change the values at a later data
 data['bases'] = list(range(number_base))
@@ -134,7 +148,7 @@ for j in data['bases']:
     solver.Add(sum(x[(i,j)] for i in data['coils']) <= bigM*y[j])
 
 for j in data['bases']:
-    solver.Add(data['base_heights'][j]*0.9*y[j] <= sum(x[(i,j)]*data['coil_heights'][i] 
+    solver.Add(data['base_heights'][j]*0.4*y[j] <= sum(x[(i,j)]*data['coil_heights'][i] 
                   for i in data['coils']))
 
 
@@ -162,24 +176,30 @@ if solv == pywraplp.Solver.OPTIMAL:
         base_heights = 0
         base_outer_max= 0
         base_outer_min = 0
-        print('\n','Base', j+1 , '\n')
+        print('\n', '------------', data['base_number'][j], '------------' , '\n')
         for i in data['coils']:
             if x[i,j].solution_value()>0:
-                print('coils : ', i , 
-                      'coil_heights : ',data['coil_heights'][i],
-                      'coil_weights : ', data['coil_weights'][i],
-                      'coil_outer : ', data['coil_outer'][i],
+                print('coils : ', i , ' ',
+                      'coil_heights : ',data['coil_heights'][i], ' ',
+                      'coil_weights : ', data['coil_weights'][i], ' ',
+                      'coil_outer : ', data['coil_outer'][i],' ',
                       'coil_inner : ', data['coil_inner'][i]
                     #   'coil_emergency',data['coil_emergency'][i]
                      )
                 base_weights += data['coil_weights'][i]
                 base_heights += data['coil_heights'][i]
                 used_coils_count = used_coils_count + 1
-
-        print('Packed base height: ', base_heights)
-        print('Packed base Weight: ',base_weights)
-        print('Base', j+1, 's height', data['base_heights'][j])
+        print('')
+        print('Packed base height : ', base_heights)
+        print('Packed base Weight : ',base_weights)
+        print('')
+        print('Base capacity height : ', data['base_heights'][j])
+        print('Base capacity weight : ', data['base_weights'][j])
+        print('Base capacity inner : ', data['base_inner'][j])
+        print('Base outer min : ', data['base_outer_min'][j])
+        print('Base outer max : ', data['base_outer_max'][j])
     
-    print('Used_coils_count : ', used_coils_count)
+    print('')
+    print('----> Used_coils_count : ', used_coils_count)
 else:
     print("There is no optimal solution")
