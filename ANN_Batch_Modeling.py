@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 import numpy as np
 import ortools
@@ -10,6 +11,13 @@ from datetime import timedelta
 # 준비물
 # 1. 코일 재공 데이터.csv : coil_information,
 # 2. 적재 MAST.csv 
+def printsave(*a):
+    file = open('C:/Users/USER/Desktop/aa.txt','a')
+    print(*a)
+    print(*a,file=file)
+
+
+printsave('스케줄링 시작 시각 : ', datetime.now())
 
 
 # Coil Data
@@ -19,12 +27,12 @@ coil_information_df.drop("Unnamed: 0", axis=1, inplace=True)
 coil_groups = pd.DataFrame(coil_information_df.groupby(['PNSPRC_CD','cycle'])['IND_CD'].value_counts())
 coil_groups = coil_groups.rename(columns={'IND_CD' : 'counts'})
 coil_groups = coil_groups.sort_values(['counts'], ascending=False)
-print("")
-print("")
-print("[[ ANN차수, cycle, 내경에 따라 구분된 coil groups ]]")
-print("")
-print(coil_groups)
-print("")
+printsave("")
+printsave("")
+printsave("[ ANN차수, cycle, 내경에 따라 구분된 coil groups ]")
+printsave("")
+printsave(coil_groups)
+printsave("")
 
 
 # Base Data
@@ -43,7 +51,8 @@ now = datetime(2022, 9, 5, hour=8, minute =0, second =0, microsecond=0, tzinfo =
 reschedule_interval = timedelta(hours = 8)
 future = now + reschedule_interval
 # 대상이 될 Base 추려내기
-possible_base_data = base_enable_info[(base_enable_info['COL_FIN_DT'] >= now) & (base_enable_info['COL_FIN_DT'] <= future)]
+possible_base_data = base_enable_info
+# possible_base_data = base_enable_info[(base_enable_info['COL_FIN_DT'] >= now) & (base_enable_info['COL_FIN_DT'] <= future)]
 new_possible_base_data = possible_base_data.copy()
 
 
@@ -60,7 +69,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
     threshold = 0.9 
     data = {}
     global new_possible_base_data
-    
+
     # Load Coil Data
     coil_number = coil_data["COIL_NO"].tolist()
     ann_number = coil_data["PNSPRC_CD"].tolist()
@@ -173,7 +182,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
     # Solve
     solv = solver.Solve()
     if solv == pywraplp.Solver.OPTIMAL:
-        # print('Total Batched Heights:', objective.Value())
+        # printsave('Total Batched Heights:', objective.Value())
         # total_weight = 0
         batched_coils_count = 0
         for j in data['bases']:
@@ -181,10 +190,10 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
             batched_base_heights = 0
             # base_outer_max= 0
             # base_outer_min = 0
-            print('\n', '-------------------------------', data['base_number'][j], '-------------------------------' , '\n')
+            printsave('\n', '-------------------------------', data['base_number'][j], '-------------------------------' , '\n')
             for i in data['coils']:
                 if x[i,j].solution_value()>0:
-                    print('coils : ', i , ' ',
+                    printsave('coils : ', i , ' ',
                         'coil_heights : ',data['coil_heights'][i], ' ',
                         'coil_weights : ', data['coil_weights'][i], ' ',
                         'coil_outer : ', data['coil_outer'][i],' ',
@@ -194,24 +203,22 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
                     batched_base_weights += data['coil_weights'][i]
                     batched_base_heights += data['coil_heights'][i]
                     batched_coils_count = batched_coils_count + 1
-            print('')
-            print('')
-            print('Filling rate of',data['base_number'][j], ' : ', 100*batched_base_heights/data['base_heights'][j], '%')
-            print('')
-            print('')
-            print('Batched base height : ', batched_base_heights)
-            print('Batched base Weight : ',batched_base_weights)
-            print('')
-            print('Base capacity height : ', data['base_heights'][j])
-            print('Base capacity weight : ', data['base_weights'][j])
-            print('Base capacity inner : ', data['base_inner'][j])
-            print('Base outer range : ', data['base_outer_min'][j],' ~ ',data['base_outer_max'][j])
+            printsave('')
+            printsave('Filling rate of',data['base_number'][j], ' : ', 100*batched_base_heights/data['base_heights'][j], '%')
+            printsave('')
+            printsave('Batched coil sum height : ', batched_base_heights)
+            printsave('Batched coil sum Weight : ',batched_base_weights)
+            printsave('')
+            printsave('Base capacity height : ', data['base_heights'][j])
+            printsave('Base capacity weight : ', data['base_weights'][j])
+            printsave('Base capacity inner : ', data['base_inner'][j])
+            printsave('Base outer range : ', data['base_outer_min'][j],' ~ ',data['base_outer_max'][j])
 
             if (batched_base_heights / data['base_heights'][j]) >= threshold:
                 batch_complete_base.append(data['base_number'][j])
         
-        print('')
-        print('----> Batched_coils_count : ', batched_coils_count)
+        printsave('')
+        printsave('----> Batched_coils_count : ', batched_coils_count)
 
         #TODO : 재귀적으로 코딩하면 더 좋을듯
 
@@ -220,7 +227,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
             new_possible_base_data.drop(possible_base_data.loc[possible_base_data['BAS_NM']==batch_complete_base[i]].index, inplace=True)
 
     else:
-        print("There is no optimal solution")
+        printsave("There is no optimal solution")
 
     return new_possible_base_data
 
@@ -230,8 +237,12 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
 for i in range(len(coil_groups.index)):
     # TODO : threshold만 넘으면 문제는 풀릴텐데 더 나은 코일배치가 뒷순서에 나올 때는 max 등으로 개선해야할까?
     coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == coil_groups.index[i][0]) & (coil_information_df['cycle'] == coil_groups.index[i][1]) & (coil_information_df['IND_CD'] == coil_groups.index[i][2])]
-    print('적재할 코일그룹 : ', '  (', len(coil_group.index),'개)', coil_groups.index[0])
-    print('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
+    printsave(i+1,'/',len(coil_groups.index),'번째 코일그룹')
+    printsave('적재할 코일그룹 : ', '  (', len(coil_group.index),'개)', coil_groups.index[0])
+    printsave('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
     multi_dimensional_multiple_knapsack(coil_group, possible_base_data)
     possible_base_data = new_possible_base_data
 
+
+printsave('스케줄링 종료 시각 : ', datetime.now())
+sys.stdout.close()
