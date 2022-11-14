@@ -29,7 +29,7 @@ coil_groups = coil_groups.rename(columns={'IND_CD' : 'counts'})
 coil_groups = coil_groups.sort_values(['counts'], ascending=False)
 printsave("")
 printsave("")
-printsave("[ ANN차수, cycle, 내경에 따라 구분된 coil groups ]")
+printsave("[ ANN차수, CYCLE, 내경에 따라 구분된 코일그룹 ]")
 printsave("")
 printsave(coil_groups)
 printsave("")
@@ -51,10 +51,9 @@ now = datetime(2022, 9, 5, hour=8, minute =0, second =0, microsecond=0, tzinfo =
 reschedule_interval = timedelta(hours = 8)
 future = now + reschedule_interval
 # 대상이 될 Base 추려내기
-possible_base_data = base_enable_info
-# possible_base_data = base_enable_info[(base_enable_info['COL_FIN_DT'] >= now) & (base_enable_info['COL_FIN_DT'] <= future)]
+# possible_base_data = base_enable_info
+possible_base_data = base_enable_info[(base_enable_info['COL_FIN_DT'] >= now) & (base_enable_info['COL_FIN_DT'] <= future)]
 new_possible_base_data = possible_base_data.copy()
-
 
 
 
@@ -68,6 +67,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
     batch_complete_base = []
     threshold = 0.9 
     data = {}
+    spacer = 200
     global new_possible_base_data
 
     # Load Coil Data
@@ -141,7 +141,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
     # Height Constraint
     for j in data['bases']:
         solver.Add(sum(x[(i,j)]*data['coil_heights'][i] 
-                    for i in data['coils']) <= data['base_heights'][j])
+                    for i in data['coils']) + spacer*((sum(x[(i,j)] for i in data['coils']))-1) <= data['base_heights'][j])
 
     # Outer Constraint - 1
     for j in data['bases']:
@@ -240,9 +240,16 @@ for i in range(len(coil_groups.index)):
     printsave(i+1,'/',len(coil_groups.index),'번째 코일그룹')
     printsave('적재할 코일그룹 : ', '  (', len(coil_group.index),'개)', coil_groups.index[0])
     printsave('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
+
+    # 가용할 수 있는 베이스 더이상 없다면 break
+    if len(possible_base_data['BAS_NM'].tolist())==0:
+        break
+        print('스케줄링 종료')
+
     multi_dimensional_multiple_knapsack(coil_group, possible_base_data)
     possible_base_data = new_possible_base_data
-
+    print('스케줄링 종료')
+    
 
 printsave('스케줄링 종료 시각 : ', datetime.now())
 sys.stdout.close()
