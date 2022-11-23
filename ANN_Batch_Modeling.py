@@ -236,7 +236,16 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data):
 
 for i in range(len(coil_groups.index)):
     # TODO : threshold만 넘으면 문제는 풀릴텐데 더 나은 코일배치가 뒷순서에 나올 때는 max 등으로 개선해야할까?
-    coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == coil_groups.index[i][0]) & (coil_information_df['cycle'] == coil_groups.index[i][1]) & (coil_information_df['IND_CD'] == coil_groups.index[i][2])]
+    coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == coil_groups.index[i][0]) &
+                                            (coil_information_df['cycle'] == coil_groups.index[i][1]) &
+                                            (coil_information_df['IND_CD'] == coil_groups.index[i][2])]
+   
+   
+   
+
+
+
+   
     printsave(i+1,'/',len(coil_groups.index),'번째 코일그룹')
     printsave('적재할 코일그룹 : ', '  (', len(coil_group.index),'개)', coil_groups.index[0])
     printsave('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
