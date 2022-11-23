@@ -10,7 +10,7 @@ from ortools.linear_solver import pywraplp
 
 
 # 준비물
-# 1. 코일 재공 데이터.csv : coil_information,
+# 1. 코일 재공 데이터.csv(coil_information)
 # 2. 적재 MAST.csv 
 
 def printsave(*a):
