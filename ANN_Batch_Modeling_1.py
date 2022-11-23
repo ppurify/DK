@@ -52,7 +52,7 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data, threshold, bigM, s
     data['num_coils'] = len(coil_number)
 
 
-    # Loda Base data
+    # Load Base data
     base_number = base_data['BAS_NM'].tolist()
     base_weights = base_data['Weight(Ton)'].tolist()
     base_heights = base_data['Height(mm)'].tolist()
@@ -179,9 +179,9 @@ def multi_dimensional_multiple_knapsack(coil_data, base_data, threshold, bigM, s
                 printsave('Base capacity inner : ', data['base_inner'][j])
                 printsave('Base outer range : ', data['base_outer_min'][j],' ~ ',data['base_outer_max'][j])
          
-        printsave('')
-        printsave('----> Batched_coils_count : ', batched_coils_count)
-        printsave('')
+        # printsave('')
+        # printsave('----> Batched_coils_count : ', batched_coils_count)
+        # printsave('')
 
 
         base_data = base_data[~possible_base_data['BAS_NM'].isin(batch_complete_base)]
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     DATA_DIR = './data/'
     BIG_M = 10000
     RESCHDULE_INTERVAL = timedelta(hours=8)
-    THRESHOLD = 0.7
+    THRESHOLD = 0.85
     SPACER = 200
     
     # Coil Data
@@ -211,9 +211,11 @@ if __name__ == "__main__":
     coil_groups = coil_groups.reset_index()
     coil_groups = coil_groups.drop(['index'], axis=1)
 
-    printsave("[[ ANN차수, cycle, 내경에 따라 구분된 coil groups ]]")
+    printsave("[ ANN차수, cycle, 내경에 따라 구분된 coil groups ]")
     printsave("")
     printsave(coil_groups)
+    printsave("")
+    printsave("[ THRESHOLD : ",THRESHOLD, "]")
     printsave("")
 
     # Base Data
@@ -232,10 +234,7 @@ if __name__ == "__main__":
     possible_base_data = base_enable_info[(base_enable_info['COL_FIN_DT'] >= now) & (base_enable_info['COL_FIN_DT'] <= future)]
 
 
-
-
-
-
+    # 코일그룹 순회하며 코일 적재
     for i in range(len(coil_groups)):
         # TODO : threshold만 넘으면 문제는 풀릴텐데 더 나은 코일배치가 뒷순서에 나올 때는 max 등으로 개선해야할까?
         coil_group = coil_information_df.loc[(coil_information_df['PNSPRC_CD'] == coil_groups.loc[i][0]) &
@@ -243,28 +242,12 @@ if __name__ == "__main__":
                                                 (coil_information_df['IND_CD'] == coil_groups.loc[i][2])]
     
         printsave(i+1,'/',len(coil_groups.index),'번째 코일그룹')
-        printsave('적재할 코일그룹 : ', '  (', len(coil_group.index),'개)', coil_groups.loc[i][0], coil_groups.loc[i][1], coil_groups.loc[i][2])
+        printsave(f"적재할 코일그룹 : ({len(coil_group)} 개), / PNSPRC_CD : {coil_groups.loc[i][0]} / cycle : {coil_groups.loc[i][1]}, IND_CD : {coil_groups.loc[i][2]}")
         printsave('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
 
         # 가용할 수 있는 베이스 더이상 없다면 break
         if len(possible_base_data['BAS_NM'].tolist())==0:
             break
-            printsave('스케줄링 종료')
 
         possible_base_data = multi_dimensional_multiple_knapsack(coil_group, possible_base_data, threshold=THRESHOLD, bigM=BIG_M, spacer=SPACER)
     printsave('스케줄링 종료 시각 : ', datetime.now())
-
-
-
-
-    # for (pnsprc_cd, cycle, ind_cd), coil_group in coil_information_df.groupby(['PNSPRC_CD', 'cycle', 'IND_CD']):
-    #     # 가용할 수 있는 베이스 더이상 없다면 break
-    #     if len(possible_base_data)==0:
-    #         break
-    #         print('스케줄링 종료')
-
-    #     print(f"적재할 코일그룹 : ({len(coil_group)} 개), / PNSPRC_CD : {pnsprc_cd} / cycle : {cycle}, IND_CD : {ind_cd}")
-    #     print('적재가능한 베이스 : ', '  (', len(possible_base_data['BAS_NM'].tolist()),'개)', possible_base_data['BAS_NM'].tolist())
-    #     possible_base_data = multi_dimensional_multiple_knapsack(coil_group, possible_base_data, threshold=THRESHOLD, bigM=BIG_M, spacer=SPACER)
-    
-    # print('스케줄링 종료 시각 : ', datetime.now())
