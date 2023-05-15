@@ -23,7 +23,7 @@ def printsave(*a):
 def multi_dimensional_multiple_knapsack(coil_data, base_data, threshold, bigM, spacer):
 
     # create model
-    solver = solver = pywraplp.Solver.CreateSolver('SCIP')
+    solver = pywraplp.Solver.CreateSolver('SCIP')
 
     # set Parameter
     batch_complete_base = []
