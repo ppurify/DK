@@ -1,2 +1,2 @@
 # DK
-X-Corps with DongGkuk Industries
+X-Corps with DongKuk Industries
